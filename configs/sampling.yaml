@@ -1,0 +1,32 @@
+# Sampling and Time-Split Configuration
+
+data:
+  raw_transactions: "data/transactions_train.csv"
+  raw_customers: "data/customers.csv"
+  raw_articles: "data/articles.csv"
+  
+  # Window: 12 months (2019-09-23 to 2020-09-22)
+  window_start_date: "2019-09-23"
+  window_end_date: "2020-09-22"
+  
+  # Customer sampling
+  sample_frac: 0.10
+  seed: 42
+
+splits:
+  # Validation week (V): final metric reporting
+  val_start: "2020-09-16"
+  val_end: "2020-09-22"
+  val_feature_cutoff: "2020-09-15"
+  
+  # Ranker-train week (R): ranker label generation
+  train_start: "2020-09-09"
+  train_end: "2020-09-15"
+  train_feature_cutoff: "2020-09-08"
+
+artifacts:
+  parquet_dir: "artifacts/parquet"
+  sampled_transactions: "artifacts/parquet/transactions_sample.parquet"
+  sampled_customers: "artifacts/parquet/customers_sample.parquet"
+  articles_parquet: "artifacts/parquet/articles.parquet"
+
