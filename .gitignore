@@ -1,0 +1,119 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Testing, coverage, and linters
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.ruff_cache/
+.mypy_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*-checkpoint.ipynb
+
+# Raw data and archives
+*.csv
+*.csv.zip
+*.tsv
+*.zip
+*.tar.gz
+*.gz
+data/*.csv
+data/*.zip
+
+# Data and model formats
+*.parquet
+*.feather
+*.h5
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.joblib
+
+# Allow test fixture data to be tracked
+!tests/fixtures/**
+
+# Artifacts directory (parquet, embeddings, models, reports)
+artifacts/**
+!artifacts/**/
+!artifacts/**/.gitkeep
+notebooks/artifacts/
+
+# MLflow tracking and local artifact storage
+mlruns/
+mlartifacts/
+*.db
+*.sqlite
+
+# Feast local registry / cache
+.feast/
+feature_store.yaml.lock
+
+# Redis, DuckDB and datastores
+dump.rdb
+*.rdb
+*.duckdb
+*.duckdb.wal
+
+# Monitoring / container persistent volume mounts
+prometheus_data/
+grafana_data/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+kaggle.json
+*.pem
+*.key
+*.cert
+
+# Operating System & IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+logs/
