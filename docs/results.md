@@ -4,11 +4,13 @@
 
 ## 1. Baselines (Validation Week V)
 
+Evaluated on 6,837 active customers who made at least one purchase in Validation Week V (`2020-09-16` to `2020-09-22`), using features and history strictly $\le$ `2020-09-15`. Logged in MLflow experiment `hm-recsys-baselines`.
+
 | Method | MAP@12 (V) | Notes |
 | :--- | :--- | :--- |
-| Global Top-12 (Last 7d) | - | Fallback popularity |
-| Repurchase + Popularity fallback | - | User repeat purchase heuristic |
-| Age-bucket Popularity | - | Demographic popularity |
+| **Repurchase + Popularity fallback** | **0.022248** | Best baseline; user repeat purchases heavily dominate early rank slots |
+| **Global Top-12 (Last 7d)** | **0.007848** | Baseline popularity heuristic (`2020-09-09` to `2020-09-15`) |
+| **Popularity per Age Bucket** | **0.007686** | 7d sales stratified by age bins (`<20`, `20-29`, `30-39`, `40-49`, `50-59`, `60+`) |
 
 ## 2. Candidate Retrieval: Recall@K (Validation Week V)
 
