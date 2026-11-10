@@ -5,13 +5,14 @@ customer sampling on the 12-month window, and saves outputs to artifacts/parquet
 """
 
 import os
-import yaml
+
 import duckdb
+import yaml
 
 
 def run_ingestion(config_path: str = "configs/sampling.yaml"):
     print(f"Loading configuration from {config_path}...")
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
 
     raw_transactions = config["data"]["raw_transactions"]
@@ -39,7 +40,7 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
     print("\n--- Step 1: Converting articles.csv to Parquet ---")
     con.execute(f"""
         COPY (
-            SELECT 
+            SELECT
                 CAST(article_id AS VARCHAR) AS article_id,
                 CAST(product_code AS VARCHAR) AS product_code,
                 prod_name,
@@ -65,8 +66,8 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
                 CAST(garment_group_no AS INT) AS garment_group_no,
                 garment_group_name,
                 detail_desc
-            FROM read_csv('{raw_articles}', 
-                          types={{'article_id': 'VARCHAR', 'product_code': 'VARCHAR'}}, 
+            FROM read_csv('{raw_articles}',
+                          types={{'article_id': 'VARCHAR', 'product_code': 'VARCHAR'}},
                           header=True)
         ) TO '{out_articles}' (FORMAT PARQUET, COMPRESSION 'ZSTD');
     """)
@@ -76,7 +77,7 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
     # Build article_idx mapping
     con.execute(f"""
         COPY (
-            SELECT 
+            SELECT
                 article_id,
                 CAST(ROW_NUMBER() OVER (ORDER BY article_id) - 1 AS INTEGER) AS article_idx
             FROM '{out_articles}'
@@ -86,14 +87,14 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
 
     print("\n--- Step 2: Customer Sampling on 12-Month Window ---")
     print(f"Window: {window_start} to {window_end}")
-    print(f"Sampling fraction: {sample_frac*100:.1f}%, Seed: {seed}")
+    print(f"Sampling fraction: {sample_frac * 100:.1f}%, Seed: {seed}")
 
     # Active customers in window
     con.execute(f"""
         CREATE TEMP TABLE active_window_customers AS
         SELECT DISTINCT customer_id
-        FROM read_csv('{raw_transactions}', 
-                      types={{'article_id': 'VARCHAR', 'customer_id': 'VARCHAR'}}, 
+        FROM read_csv('{raw_transactions}',
+                      types={{'article_id': 'VARCHAR', 'customer_id': 'VARCHAR'}},
                       header=True)
         WHERE CAST(t_dat AS DATE) >= DATE '{window_start}'
           AND CAST(t_dat AS DATE) <= DATE '{window_end}';
@@ -105,14 +106,16 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
     threshold = int(sample_frac * 1_000_000)
     con.execute(f"""
         CREATE TEMP TABLE sampled_customer_ids AS
-        SELECT 
+        SELECT
             customer_id,
             CAST(ROW_NUMBER() OVER (ORDER BY customer_id) - 1 AS INTEGER) AS customer_idx
         FROM active_window_customers
         WHERE abs(hash(concat(customer_id, '{seed}'))) % 1000000 < {threshold};
     """)
     sampled_cust_count = con.execute("SELECT count(*) FROM sampled_customer_ids").fetchone()[0]
-    print(f"Sampled customers: {sampled_cust_count:,} ({sampled_cust_count/total_active_cust*100:.2f}%)")
+    print(
+        f"Sampled customers: {sampled_cust_count:,} ({sampled_cust_count / total_active_cust * 100:.2f}%)"
+    )
 
     # Save customer ID map
     con.execute(f"""
@@ -123,7 +126,7 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
     print("\n--- Step 3: Filtering & Ingesting Sampled Transactions ---")
     con.execute(f"""
         COPY (
-            SELECT 
+            SELECT
                 CAST(t.t_dat AS DATE) AS t_dat,
                 t.customer_id,
                 m.customer_idx,
@@ -131,8 +134,8 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
                 am.article_idx,
                 CAST(t.price AS FLOAT) AS price,
                 CAST(t.sales_channel_id AS TINYINT) AS sales_channel_id
-            FROM read_csv('{raw_transactions}', 
-                          types={{'article_id': 'VARCHAR', 'customer_id': 'VARCHAR'}}, 
+            FROM read_csv('{raw_transactions}',
+                          types={{'article_id': 'VARCHAR', 'customer_id': 'VARCHAR'}},
                           header=True) t
             JOIN sampled_customer_ids m ON t.customer_id = m.customer_id
             JOIN '{out_article_map}' am ON t.article_id = am.article_id
@@ -147,7 +150,7 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
     print("\n--- Step 4: Converting Sampled Customers ---")
     con.execute(f"""
         COPY (
-            SELECT 
+            SELECT
                 c.customer_id,
                 m.customer_idx,
                 c.FN,
@@ -156,8 +159,8 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
                 c.fashion_news_frequency,
                 CAST(c.age AS TINYINT) AS age,
                 c.postal_code
-            FROM read_csv('{raw_customers}', 
-                          types={{'customer_id': 'VARCHAR'}}, 
+            FROM read_csv('{raw_customers}',
+                          types={{'customer_id': 'VARCHAR'}},
                           header=True) c
             JOIN sampled_customer_ids m ON c.customer_id = m.customer_id
             ORDER BY m.customer_idx
@@ -168,7 +171,7 @@ def run_ingestion(config_path: str = "configs/sampling.yaml"):
 
     print("\n--- Summary Statistics ---")
     stats = con.execute(f"""
-        SELECT 
+        SELECT
             min(t_dat) AS min_date,
             max(t_dat) AS max_date,
             count(*) AS total_tx,

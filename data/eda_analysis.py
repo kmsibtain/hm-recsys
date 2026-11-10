@@ -11,8 +11,8 @@ Performs:
 
 import json
 from pathlib import Path
+
 import duckdb
-import numpy as np
 
 
 def get_project_root() -> Path:
@@ -57,16 +57,16 @@ def run_eda(parquet_dir: str = None):
 
     # 3. Foreign key integrity
     orphan_cust = con.execute(f"""
-        SELECT count(distinct t.customer_id) 
-        FROM '{tx_path}' t 
-        LEFT JOIN '{cust_path}' c ON t.customer_id = c.customer_id 
+        SELECT count(distinct t.customer_id)
+        FROM '{tx_path}' t
+        LEFT JOIN '{cust_path}' c ON t.customer_id = c.customer_id
         WHERE c.customer_id IS NULL
     """).fetchone()[0]
 
     orphan_art = con.execute(f"""
-        SELECT count(distinct t.article_id) 
-        FROM '{tx_path}' t 
-        LEFT JOIN '{art_path}' a ON t.article_id = a.article_id 
+        SELECT count(distinct t.article_id)
+        FROM '{tx_path}' t
+        LEFT JOIN '{art_path}' a ON t.article_id = a.article_id
         WHERE a.article_id IS NULL
     """).fetchone()[0]
     print(f"Orphaned customer transactions: {orphan_cust}")
@@ -75,7 +75,7 @@ def run_eda(parquet_dir: str = None):
     # 4. Null value checks
     print("\nCustomer missing values:")
     cust_nulls = con.execute(f"""
-        SELECT 
+        SELECT
             count(*) - count(FN) AS fn_null,
             count(*) - count(Active) AS active_null,
             count(*) - count(club_member_status) AS club_null,
@@ -83,17 +83,19 @@ def run_eda(parquet_dir: str = None):
             count(*) - count(age) AS age_null
         FROM '{cust_path}'
     """).fetchall()[0]
-    print(f"  FN: {cust_nulls[0]:,} ({cust_nulls[0]/cust_count*100:.1f}%)")
-    print(f"  Active: {cust_nulls[1]:,} ({cust_nulls[1]/cust_count*100:.1f}%)")
-    print(f"  club_member_status: {cust_nulls[2]:,} ({cust_nulls[2]/cust_count*100:.2f}%)")
-    print(f"  fashion_news_frequency: {cust_nulls[3]:,} ({cust_nulls[3]/cust_count*100:.2f}%)")
-    print(f"  age: {cust_nulls[4]:,} ({cust_nulls[4]/cust_count*100:.2f}%)")
+    print(f"  FN: {cust_nulls[0]:,} ({cust_nulls[0] / cust_count * 100:.1f}%)")
+    print(f"  Active: {cust_nulls[1]:,} ({cust_nulls[1] / cust_count * 100:.1f}%)")
+    print(f"  club_member_status: {cust_nulls[2]:,} ({cust_nulls[2] / cust_count * 100:.2f}%)")
+    print(f"  fashion_news_frequency: {cust_nulls[3]:,} ({cust_nulls[3] / cust_count * 100:.2f}%)")
+    print(f"  age: {cust_nulls[4]:,} ({cust_nulls[4] / cust_count * 100:.2f}%)")
 
     # 5. Article string length checks
     art_len_check = con.execute(f"""
         SELECT min(length(article_id)), max(length(article_id)) FROM '{art_path}'
     """).fetchall()[0]
-    print(f"Article ID string length min/max: {art_len_check[0]} / {art_len_check[1]} (strictly 10 digits)")
+    print(
+        f"Article ID string length min/max: {art_len_check[0]} / {art_len_check[1]} (strictly 10 digits)"
+    )
 
     print("\n=================================================================")
     print("STEP 3: DISTRIBUTIONS & RECOMMENDER LONG-TAIL SKEW")
@@ -108,20 +110,36 @@ def run_eda(parquet_dir: str = None):
         ORDER BY sales DESC;
     """)
     total_sales = tx_count
-    top_1pct = con.execute("SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.01 AS INT) FROM item_sales))").fetchone()[0]
-    top_5pct = con.execute("SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.05 AS INT) FROM item_sales))").fetchone()[0]
-    top_10pct = con.execute("SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.10 AS INT) FROM item_sales))").fetchone()[0]
-    top_20pct = con.execute("SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.20 AS INT) FROM item_sales))").fetchone()[0]
+    top_1pct = con.execute(
+        "SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.01 AS INT) FROM item_sales))"
+    ).fetchone()[0]
+    top_5pct = con.execute(
+        "SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.05 AS INT) FROM item_sales))"
+    ).fetchone()[0]
+    top_10pct = con.execute(
+        "SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.10 AS INT) FROM item_sales))"
+    ).fetchone()[0]
+    top_20pct = con.execute(
+        "SELECT sum(sales) FROM (SELECT sales FROM item_sales LIMIT (SELECT CAST(count(*)*0.20 AS INT) FROM item_sales))"
+    ).fetchone()[0]
 
-    print(f"Item Pareto distribution:")
-    print(f"  Top 1% of active items account for:  {top_1pct:,} sales ({top_1pct/total_sales*100:.2f}%)")
-    print(f"  Top 5% of active items account for:  {top_5pct:,} sales ({top_5pct/total_sales*100:.2f}%)")
-    print(f"  Top 10% of active items account for: {top_10pct:,} sales ({top_10pct/total_sales*100:.2f}%)")
-    print(f"  Top 20% of active items account for: {top_20pct:,} sales ({top_20pct/total_sales*100:.2f}%)")
+    print("Item Pareto distribution:")
+    print(
+        f"  Top 1% of active items account for:  {top_1pct:,} sales ({top_1pct / total_sales * 100:.2f}%)"
+    )
+    print(
+        f"  Top 5% of active items account for:  {top_5pct:,} sales ({top_5pct / total_sales * 100:.2f}%)"
+    )
+    print(
+        f"  Top 10% of active items account for: {top_10pct:,} sales ({top_10pct / total_sales * 100:.2f}%)"
+    )
+    print(
+        f"  Top 20% of active items account for: {top_20pct:,} sales ({top_20pct / total_sales * 100:.2f}%)"
+    )
 
     # 2. Customer activity quantiles
     cust_quantiles = con.execute(f"""
-        SELECT 
+        SELECT
             quantile_cont(tx_per_cust, 0.10),
             quantile_cont(tx_per_cust, 0.25),
             quantile_cont(tx_per_cust, 0.50),
@@ -137,13 +155,15 @@ def run_eda(parquet_dir: str = None):
             GROUP BY customer_id
         )
     """).fetchall()[0]
-    print(f"\nCustomer purchase volume percentiles:")
-    print(f"  p10: {cust_quantiles[0]:.1f}, p25: {cust_quantiles[1]:.1f}, Median (p50): {cust_quantiles[2]:.1f}, "
-          f"p75: {cust_quantiles[3]:.1f}, p90: {cust_quantiles[4]:.1f}, p95: {cust_quantiles[5]:.1f}, p99: {cust_quantiles[6]:.1f}, Max: {cust_quantiles[7]}, Mean: {cust_quantiles[8]:.2f}")
+    print("\nCustomer purchase volume percentiles:")
+    print(
+        f"  p10: {cust_quantiles[0]:.1f}, p25: {cust_quantiles[1]:.1f}, Median (p50): {cust_quantiles[2]:.1f}, "
+        f"p75: {cust_quantiles[3]:.1f}, p90: {cust_quantiles[4]:.1f}, p95: {cust_quantiles[5]:.1f}, p99: {cust_quantiles[6]:.1f}, Max: {cust_quantiles[7]}, Mean: {cust_quantiles[8]:.2f}"
+    )
 
     # Customer activity buckets
     cust_buckets = con.execute(f"""
-        SELECT 
+        SELECT
             sum(CASE WHEN tx_per_cust = 1 THEN 1 ELSE 0 END),
             sum(CASE WHEN tx_per_cust BETWEEN 2 AND 5 THEN 1 ELSE 0 END),
             sum(CASE WHEN tx_per_cust BETWEEN 6 AND 15 THEN 1 ELSE 0 END),
@@ -154,15 +174,15 @@ def run_eda(parquet_dir: str = None):
             GROUP BY customer_id
         )
     """).fetchall()[0]
-    print(f"Customer activity segment share:")
-    print(f"  1 purchase only:    {cust_buckets[0]:,} ({cust_buckets[0]/cust_count*100:.1f}%)")
-    print(f"  2 to 5 purchases:   {cust_buckets[1]:,} ({cust_buckets[1]/cust_count*100:.1f}%)")
-    print(f"  6 to 15 purchases:  {cust_buckets[2]:,} ({cust_buckets[2]/cust_count*100:.1f}%)")
-    print(f"  >15 purchases:      {cust_buckets[3]:,} ({cust_buckets[3]/cust_count*100:.1f}%)")
+    print("Customer activity segment share:")
+    print(f"  1 purchase only:    {cust_buckets[0]:,} ({cust_buckets[0] / cust_count * 100:.1f}%)")
+    print(f"  2 to 5 purchases:   {cust_buckets[1]:,} ({cust_buckets[1] / cust_count * 100:.1f}%)")
+    print(f"  6 to 15 purchases:  {cust_buckets[2]:,} ({cust_buckets[2] / cust_count * 100:.1f}%)")
+    print(f"  >15 purchases:      {cust_buckets[3]:,} ({cust_buckets[3] / cust_count * 100:.1f}%)")
 
     # 3. Price distribution
     price_stats = con.execute(f"""
-        SELECT 
+        SELECT
             min(price),
             quantile_cont(price, 0.25),
             quantile_cont(price, 0.50),
@@ -172,9 +192,11 @@ def run_eda(parquet_dir: str = None):
             max(price)
         FROM '{tx_path}'
     """).fetchall()[0]
-    print(f"\nPrice distribution:")
-    print(f"  Min: {price_stats[0]:.4f}, p25: {price_stats[1]:.4f}, Median: {price_stats[2]:.4f}, "
-          f"Mean: {price_stats[3]:.4f}, p75: {price_stats[4]:.4f}, p99: {price_stats[5]:.4f}, Max: {price_stats[6]:.4f}")
+    print("\nPrice distribution:")
+    print(
+        f"  Min: {price_stats[0]:.4f}, p25: {price_stats[1]:.4f}, Median: {price_stats[2]:.4f}, "
+        f"Mean: {price_stats[3]:.4f}, p75: {price_stats[4]:.4f}, p99: {price_stats[5]:.4f}, Max: {price_stats[6]:.4f}"
+    )
 
     print("\n=================================================================")
     print("STEP 4: TEMPORAL DYNAMICS & CATALOG TURNOVER")
@@ -182,7 +204,7 @@ def run_eda(parquet_dir: str = None):
 
     # 1. Product lifespan in circulation
     lifespans = con.execute(f"""
-        SELECT 
+        SELECT
             avg(datediff('day', first_sale, last_sale)),
             median(datediff('day', first_sale, last_sale)),
             quantile_cont(datediff('day', first_sale, last_sale), 0.75),
@@ -193,7 +215,7 @@ def run_eda(parquet_dir: str = None):
             GROUP BY article_id
         )
     """).fetchall()[0]
-    print(f"Article circulation lifespan (days between first and last sale in 12-month window):")
+    print("Article circulation lifespan (days between first and last sale in 12-month window):")
     print(f"  Average: {lifespans[0]:.1f} days")
     print(f"  Median:  {lifespans[1]:.1f} days")
     print(f"  p75:     {lifespans[2]:.1f} days")
@@ -201,7 +223,7 @@ def run_eda(parquet_dir: str = None):
 
     # 2. Proportion of sales in last 7 days vs older
     recency_breakdown = con.execute(f"""
-        SELECT 
+        SELECT
             sum(CASE WHEN t_dat >= DATE '2020-09-09' THEN 1 ELSE 0 END) AS last_14d_sales,
             sum(CASE WHEN t_dat >= DATE '2020-09-16' THEN 1 ELSE 0 END) AS val_week_sales
         FROM '{tx_path}'
@@ -215,44 +237,50 @@ def run_eda(parquet_dir: str = None):
 
     # 1. Overall repurchase rate (buying same article_id again)
     repurchase_stats = con.execute(f"""
-        SELECT 
+        SELECT
             count(*),
             sum(CASE WHEN purchase_seq > 1 THEN 1 ELSE 0 END) AS repurchases
         FROM (
-            SELECT 
-                customer_id, 
+            SELECT
+                customer_id,
                 article_id,
                 row_number() OVER (PARTITION BY customer_id, article_id ORDER BY t_dat) AS purchase_seq
             FROM '{tx_path}'
         )
     """).fetchall()[0]
-    print(f"Overall repurchase rate: {repurchase_stats[1]:,} / {repurchase_stats[0]:,} ({repurchase_stats[1]/repurchase_stats[0]*100:.2f}%)")
+    print(
+        f"Overall repurchase rate: {repurchase_stats[1]:,} / {repurchase_stats[0]:,} ({repurchase_stats[1] / repurchase_stats[0] * 100:.2f}%)"
+    )
 
     # 2. Product-code repeat rate (buying different color/variant of same style)
     prod_code_repeat = con.execute(f"""
-        SELECT 
+        SELECT
             count(*),
             sum(CASE WHEN code_seq > 1 THEN 1 ELSE 0 END) AS code_repeats
         FROM (
-            SELECT 
-                t.customer_id, 
+            SELECT
+                t.customer_id,
                 a.product_code,
                 row_number() OVER (PARTITION BY t.customer_id, a.product_code ORDER BY t.t_dat) AS code_seq
             FROM '{tx_path}' t
             JOIN '{art_path}' a ON t.article_id = a.article_id
         )
     """).fetchall()[0]
-    print(f"Product-code variant repeat rate: {prod_code_repeat[1]:,} / {prod_code_repeat[0]:,} ({prod_code_repeat[1]/prod_code_repeat[0]*100:.2f}%)")
+    print(
+        f"Product-code variant repeat rate: {prod_code_repeat[1]:,} / {prod_code_repeat[0]:,} ({prod_code_repeat[1] / prod_code_repeat[0] * 100:.2f}%)"
+    )
 
     # 3. Duplicate transactions on same day (basket size / multiple units)
     basket_duplicates = con.execute(f"""
-        SELECT 
+        SELECT
             count(*) AS total_rows,
             count(distinct concat(customer_id, '_', article_id, '_', CAST(t_dat AS VARCHAR))) AS distinct_tuples
         FROM '{tx_path}'
     """).fetchall()[0]
     dup_rows = basket_duplicates[0] - basket_duplicates[1]
-    print(f"Multi-unit purchases on same day (same customer, article, date): {dup_rows:,} ({dup_rows/basket_duplicates[0]*100:.2f}%)")
+    print(
+        f"Multi-unit purchases on same day (same customer, article, date): {dup_rows:,} ({dup_rows / basket_duplicates[0] * 100:.2f}%)"
+    )
 
     # 4. Cold start in Validation Week V (2020-09-16 to 2020-09-22)
     val_cust_stats = con.execute(f"""
@@ -262,17 +290,17 @@ def run_eda(parquet_dir: str = None):
             WHERE t_dat >= DATE '2020-09-16' AND t_dat <= DATE '2020-09-22'
         ),
         hist_counts AS (
-            SELECT 
+            SELECT
                 vc.customer_id,
                 count(t.article_id) AS prior_purchases,
                 sum(CASE WHEN t.t_dat >= DATE '2020-08-16' THEN 1 ELSE 0 END) AS last_30d_purchases
             FROM val_customers vc
-            LEFT JOIN '{tx_path}' t 
-              ON vc.customer_id = t.customer_id 
+            LEFT JOIN '{tx_path}' t
+              ON vc.customer_id = t.customer_id
              AND t.t_dat < DATE '2020-09-16'
             GROUP BY vc.customer_id
         )
-        SELECT 
+        SELECT
             count(*),
             sum(CASE WHEN prior_purchases = 0 THEN 1 ELSE 0 END) AS zero_prior_purchases,
             sum(CASE WHEN last_30d_purchases = 0 THEN 1 ELSE 0 END) AS zero_last_30d_purchases
@@ -280,8 +308,12 @@ def run_eda(parquet_dir: str = None):
     """).fetchall()[0]
     total_val_custs = val_cust_stats[0]
     print(f"\nValidation Week Active Customers: {total_val_custs:,}")
-    print(f"  Zero prior purchases in 12-month window: {val_cust_stats[1]:,} ({val_cust_stats[1]/total_val_custs*100:.2f}%)")
-    print(f"  Zero purchases in preceding 30 days:     {val_cust_stats[2]:,} ({val_cust_stats[2]/total_val_custs*100:.2f}%)")
+    print(
+        f"  Zero prior purchases in 12-month window: {val_cust_stats[1]:,} ({val_cust_stats[1] / total_val_custs * 100:.2f}%)"
+    )
+    print(
+        f"  Zero purchases in preceding 30 days:     {val_cust_stats[2]:,} ({val_cust_stats[2] / total_val_custs * 100:.2f}%)"
+    )
 
     print("\n=================================================================")
     print("STEP 6: DATA QUALITY & ANOMALIES")
@@ -293,12 +325,14 @@ def run_eda(parquet_dir: str = None):
 
     # 2. Articles in catalog with 0 sales
     unsold_articles = con.execute(f"""
-        SELECT count(*) 
+        SELECT count(*)
         FROM '{art_path}' a
         LEFT JOIN (SELECT DISTINCT article_id FROM '{tx_path}') t ON a.article_id = t.article_id
         WHERE t.article_id IS NULL
     """).fetchone()[0]
-    print(f"Catalog articles never sold in 12-month window: {unsold_articles:,} / {art_count:,} ({unsold_articles/art_count*100:.2f}%)")
+    print(
+        f"Catalog articles never sold in 12-month window: {unsold_articles:,} / {art_count:,} ({unsold_articles / art_count * 100:.2f}%)"
+    )
 
     # 3. Channel breakdown
     channels = con.execute(f"""
@@ -326,16 +360,20 @@ def run_eda(parquet_dir: str = None):
         WHERE t_dat >= DATE '2020-09-16' AND t_dat <= DATE '2020-09-22';
     """)
     total_val_pairs = con.execute("SELECT count(*) FROM val_ground_truth").fetchone()[0]
-    val_customers_count = con.execute("SELECT count(distinct customer_id) FROM val_ground_truth").fetchone()[0]
-    print(f"Validation Week target: {val_customers_count:,} customers, {total_val_pairs:,} positive (customer, article) pairs.")
+    val_customers_count = con.execute(
+        "SELECT count(distinct customer_id) FROM val_ground_truth"
+    ).fetchone()[0]
+    print(
+        f"Validation Week target: {val_customers_count:,} customers, {total_val_pairs:,} positive (customer, article) pairs."
+    )
 
     # Generator 1: Repurchase (Top 30 distinct items previously bought by user)
     con.execute(f"""
         CREATE TEMP TABLE cand_repurchase AS
         SELECT customer_id, article_id
         FROM (
-            SELECT 
-                customer_id, 
+            SELECT
+                customer_id,
                 article_id,
                 max(t_dat) AS last_buy,
                 row_number() OVER (PARTITION BY customer_id ORDER BY max(t_dat) DESC) AS rn
@@ -346,14 +384,14 @@ def run_eda(parquet_dir: str = None):
         WHERE rn <= 30;
     """)
     hits_repurchase = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_repurchase c ON gt.customer_id = c.customer_id AND gt.article_id = c.article_id
     """).fetchone()[0]
     recall_repurchase = hits_repurchase / total_val_pairs
-    print(f"\n1. Repurchase Generator (Top 30):")
+    print("\n1. Repurchase Generator (Top 30):")
     print(f"   Hits: {hits_repurchase:,} / {total_val_pairs:,}")
-    print(f"   Recall@30: {recall_repurchase*100:.2f}%")
+    print(f"   Recall@30: {recall_repurchase * 100:.2f}%")
 
     # Generator 2: Recent Popularity (Global Top 50 in last 7 days: 2020-09-09 to 2020-09-15)
     con.execute(f"""
@@ -366,14 +404,14 @@ def run_eda(parquet_dir: str = None):
         LIMIT 50;
     """)
     hits_popular_7d = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_popular_7d c ON gt.article_id = c.article_id
     """).fetchone()[0]
     recall_pop_7d = hits_popular_7d / total_val_pairs
-    print(f"\n2. Global Popularity Generator (Last 7 Days, Top 50):")
+    print("\n2. Global Popularity Generator (Last 7 Days, Top 50):")
     print(f"   Hits: {hits_popular_7d:,} / {total_val_pairs:,}")
-    print(f"   Recall@50: {recall_pop_7d*100:.2f}%")
+    print(f"   Recall@50: {recall_pop_7d * 100:.2f}%")
 
     # Generator 2b: Recent Popularity (Global Top 50 in last 14 days: 2020-09-02 to 2020-09-15)
     con.execute(f"""
@@ -386,14 +424,14 @@ def run_eda(parquet_dir: str = None):
         LIMIT 50;
     """)
     hits_popular_14d = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_popular_14d c ON gt.article_id = c.article_id
     """).fetchone()[0]
     recall_pop_14d = hits_popular_14d / total_val_pairs
-    print(f"\n3. Global Popularity Generator (Last 14 Days, Top 50):")
+    print("\n3. Global Popularity Generator (Last 14 Days, Top 50):")
     print(f"   Hits: {hits_popular_14d:,} / {total_val_pairs:,}")
-    print(f"   Recall@50: {recall_pop_14d*100:.2f}%")
+    print(f"   Recall@50: {recall_pop_14d * 100:.2f}%")
 
     # Generator 3: Product-Code Variants (Other articles with same product_code as customer's bought items, up to 30)
     con.execute(f"""
@@ -406,8 +444,8 @@ def run_eda(parquet_dir: str = None):
         CREATE TEMP TABLE cand_variants AS
         SELECT customer_id, article_id
         FROM (
-            SELECT 
-                u.customer_id, 
+            SELECT
+                u.customer_id,
                 a.article_id,
                 row_number() OVER (PARTITION BY u.customer_id ORDER BY a.article_id) AS rn
             FROM user_product_codes u
@@ -416,14 +454,14 @@ def run_eda(parquet_dir: str = None):
         WHERE rn <= 30;
     """)
     hits_variants = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_variants c ON gt.customer_id = c.customer_id AND gt.article_id = c.article_id
     """).fetchone()[0]
     recall_variants = hits_variants / total_val_pairs
-    print(f"\n4. Product-Code Variant Generator (Top 30):")
+    print("\n4. Product-Code Variant Generator (Top 30):")
     print(f"   Hits: {hits_variants:,} / {total_val_pairs:,}")
-    print(f"   Recall@30: {recall_variants*100:.2f}%")
+    print(f"   Recall@30: {recall_variants * 100:.2f}%")
 
     # Generator 4: Item-Item Co-purchase (Co-purchased within 14 days, applied to user's last 5 items)
     print("\n5. Computing Item-Item Co-purchase Co-occurrences...")
@@ -431,8 +469,8 @@ def run_eda(parquet_dir: str = None):
         CREATE TEMP TABLE recent_user_items AS
         SELECT customer_id, article_id
         FROM (
-            SELECT 
-                customer_id, 
+            SELECT
+                customer_id,
                 article_id,
                 row_number() OVER (PARTITION BY customer_id ORDER BY t_dat DESC) AS rn
             FROM '{tx_path}'
@@ -444,14 +482,14 @@ def run_eda(parquet_dir: str = None):
         CREATE TEMP TABLE top_co_purchases AS
         SELECT a1, a2
         FROM (
-            SELECT 
-                t1.article_id AS a1, 
+            SELECT
+                t1.article_id AS a1,
                 t2.article_id AS a2,
                 count(*) AS pair_count,
                 row_number() OVER (PARTITION BY t1.article_id ORDER BY count(*) DESC) AS rn
             FROM '{tx_path}' t1
-            JOIN '{tx_path}' t2 
-              ON t1.customer_id = t2.customer_id 
+            JOIN '{tx_path}' t2
+              ON t1.customer_id = t2.customer_id
              AND t1.article_id != t2.article_id
              AND abs(datediff('day', t1.t_dat, t2.t_dat)) <= 14
             WHERE t1.t_dat >= DATE '2020-08-16' AND t1.t_dat < DATE '2020-09-16'
@@ -466,13 +504,13 @@ def run_eda(parquet_dir: str = None):
         JOIN top_co_purchases cp ON u.article_id = cp.a1;
     """)
     hits_copurchase = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_copurchase c ON gt.customer_id = c.customer_id AND gt.article_id = c.article_id
     """).fetchone()[0]
     recall_copurchase = hits_copurchase / total_val_pairs
     print(f"   Hits: {hits_copurchase:,} / {total_val_pairs:,}")
-    print(f"   Recall@CoPurchase: {recall_copurchase*100:.2f}%")
+    print(f"   Recall@CoPurchase: {recall_copurchase * 100:.2f}%")
 
     # Union Recall (Combining Repurchase + Popularity 7d + Product Variants + Co-purchase)
     con.execute("""
@@ -486,16 +524,16 @@ def run_eda(parquet_dir: str = None):
         SELECT customer_id, article_id FROM cand_copurchase;
     """)
     hits_union = con.execute("""
-        SELECT count(*) 
+        SELECT count(*)
         FROM val_ground_truth gt
         JOIN cand_union c ON gt.customer_id = c.customer_id AND gt.article_id = c.article_id
     """).fetchone()[0]
     recall_union = hits_union / total_val_pairs
-    print(f"\n=================================================================")
-    print(f"UNION RETRIEVAL CEILING (Repurchase + Pop 7d + Variants + Co-purchase):")
+    print("\n=================================================================")
+    print("UNION RETRIEVAL CEILING (Repurchase + Pop 7d + Variants + Co-purchase):")
     print(f"  Total Union Hits: {hits_union:,} / {total_val_pairs:,}")
-    print(f"  Max Possible Recall: {recall_union*100:.2f}%")
-    print(f"=================================================================")
+    print(f"  Max Possible Recall: {recall_union * 100:.2f}%")
+    print("=================================================================")
 
     # Prepare structured summary dict
     results = {
@@ -513,7 +551,7 @@ def run_eda(parquet_dir: str = None):
             "variants_recall": float(recall_variants),
             "copurchase_recall": float(recall_copurchase),
             "union_recall": float(recall_union),
-        }
+        },
     }
     with open(out_json, "w") as f:
         json.dump(results, f, indent=2)
@@ -524,4 +562,3 @@ def run_eda(parquet_dir: str = None):
 
 if __name__ == "__main__":
     run_eda()
-
