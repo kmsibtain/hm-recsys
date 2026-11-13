@@ -128,6 +128,8 @@ Merge and dedupe to 100 to 200 candidates per customer. Keep the `source` as a l
 
 Acceptance: `docs/results.md` contains a table of recall@K per generator and for the union, on V. Include the incremental recall each generator adds. This table proves what each component earns.
 
+**Status (2026-11-13): Phase 2 acceptance passed.** Both Colab cutoff exports were verified; all six generators and the capped union were measured on V, with incremental contributions recorded. All 28 tests and full V candidate integrity checks passed. See [the acceptance audit](docs/phase2_acceptance.md). Phase 3 has not started.
+
 ### Phase 3: Ranking (week 3)
 
 Build the training set for week R (and optionally extra weeks): one row per (customer, candidate), label 1 if purchased in the target week, grouped by customer. Drop customers with no positive in candidates for training (keep all for evaluation).

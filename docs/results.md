@@ -14,15 +14,23 @@ Evaluated on 6,837 active customers who made at least one purchase in Validation
 
 ## 2. Candidate Retrieval: Recall@K (Validation Week V)
 
-| Generator | K | Recall@K | Incremental Recall | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| Repurchase | 30 | - | - | Recency-weighted repeat buys |
-| Recent Popularity | 50 | - | - | Global & age-bucketed |
-| Product Code Variants | 30 | - | - | Color variants of bought products |
-| Item-Item Co-purchase | 30 | - | - | 14-day co-occurrence matrix |
-| ALS (`implicit`) | 50 | - | - | Latent factor collaborative filtering |
-| Two-Tower (FAISS) | 50 | - | - | Dual-encoder semantic embeddings |
-| **Union (Merged & Deduped)** | **100–200** | - | - | Combined candidate pool |
+Measured on the sampled dataset with source dates through `2020-09-15`. Macro recall averages distinct held-out item recall over every validation buyer, including cold and zero-hit customers.
+
+| Generator | K | Recall@K | Incremental recall |
+| :--- | ---: | ---: | ---: |
+| repurchase | 30 | 0.041914 | 0.041914 |
+| popularity | 200 | 0.126781 | 0.118527 |
+| variants | 30 | 0.027043 | 0.017531 |
+| copurchase | 100 | 0.036209 | 0.009477 |
+| als | 50 | 0.037883 | 0.014846 |
+| two_tower | 50 | 0.032601 | 0.008616 |
+| union | 200 | 0.187523 | — |
+
+Incremental recall uses an **uncapped** cumulative union in table order, so it measures unique added coverage. The final union is capped at 200 using reciprocal-rank fusion (constant 60); its recall may be lower. Popularity combines six top-50 lists: 7/14-day global, age-bucket and preferred-channel popularity, fused to 200. Co-purchase takes up to 20 neighbors for each of the last five distinct items. All generators permit previously purchased items. The union retains per-source scores and ranks.
+
+Machine: Windows 11, Intel Core i7-7600U, four logical CPUs; DuckDB capped at 4 GB and four threads, ALS 64 factors / 15 iterations. Artifacts: `artifacts/candidates/val/`, including `evaluation.json`, `evaluation.parquet`, source Parquets and `union.parquet`.
+
+All six generators were evaluated locally on V, including FAISS retrieval from the human-run Colab exports. Notebook internal Recall@100 is a separate metric and is not substituted for this table. See [the Phase 2 acceptance audit](phase2_acceptance.md).
 
 ## 3. Ranker Performance (LightGBM LambdaRank)
 

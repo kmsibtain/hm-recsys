@@ -30,3 +30,9 @@ artifacts:
   sampled_customers: "artifacts/parquet/customers_sample.parquet"
   articles_parquet: "artifacts/parquet/articles.parquet"
 
+candidates:
+  output_dir: "artifacts/candidates"
+  max_candidates: 200
+  als_iterations: 15
+  two_tower_dir: "artifacts/two_tower"
+

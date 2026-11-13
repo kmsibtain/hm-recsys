@@ -30,11 +30,18 @@ dev = [
 modeling = [
     "lightgbm>=4.0.0",
     "implicit>=0.7.0",
+    "faiss-cpu>=1.8.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
 ]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.setuptools.packages.find]
+include = ["data*", "candidates*", "ranking*", "serving*", "simulator*", "experiments*"]
+namespaces = false
 
 [tool.ruff.lint]
 select = [

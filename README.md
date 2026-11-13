@@ -38,6 +38,30 @@ make baselines  # Evaluate baselines and log to MLflow
 make mlflow-ui  # Start MLflow UI
 ```
 
+### Phase 2 candidate generation (Windows 11)
+
+Use the existing virtual environment directly; activation is optional:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,modeling]"
+.\.venv\Scripts\python.exe -m candidates.pipeline --split val
+.\.venv\Scripts\python.exe -m candidates.report
+.\.venv\Scripts\python.exe -m candidates.pipeline --split train
+.\.venv\Scripts\python.exe -m pytest tests -p no:cacheprovider
+```
+
+With GNU Make installed, `make candidates` and `make candidates-train` use
+`.venv/Scripts/python.exe` on Windows. Each split writes source Parquets, an ALS
+model, a deduplicated top-200 union with source scores/ranks, and measured recall
+under `artifacts/candidates/{split}/`. See [results](docs/results.md).
+
+Phase 2 acceptance passed: all six generators and the union were evaluated on V.
+The merged pool achieves **18.75% Recall@200**; see the
+[acceptance audit](docs/phase2_acceptance.md) and [full results](docs/results.md).
+Both Google Colab cutoff exports were returned and validated. For reruns, use the
+[Colab runbook](docs/colab_runbook.md). This project uses offline purchase data;
+later online experiments are replay simulations.
+
 ---
 
 ## Phase 1 Baseline Results (Validation Week V)
